@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Isabels julkalender 🎄</title>
+<style>
+
+@font-face {
+  font-family: 'MerryChristmas';
+  src: url('LastChristmas_PERSONAL_USE_ONLY') format('opentype');
+}
+  body {
+    margin: 0;
+    font-family: 'MerryChristmas', cursive;
+    background-image: url("IMG_6952.jpg"); /* byt till din bild */
+    background-size: cover;
+    background-position: center 25%;
+    background-repeat: no-repeat;
+    color: #fff;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  h1 {
+    text-align: center;
+    margin-top: 30px;
+    color: gold;
+    text-shadow: 2px 2px 5px #b30000;
+  }
+
+  .calendar {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 20px;
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 10px;
+  }
+
+  .day {
+    background: transparent;
+    border: 2px solid rgb(255, 255, 255);  /* eller white */
+    border-radius: 10px;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.2s, background 0.3s;
+  }
+
+  .day:hover {
+    transform: scale(1.05);
+    background: #cc0000;
+  }
+
+  .day.locked {
+    background: #413e3e;
+    opacity: 0.1  ;
+    cursor: not-allowed;
+    
+  }
+
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+  }
+
+  .modal-content {
+    background: #fff;
+    color: #333;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    max-width: 400px;
+    box-shadow: 0 0 10px #000;
+  }
+
+  .modal-content h2 {
+    color: #b30000;
+  }
+
+  .close {
+    margin-top: 15px;
+    background: #b30000;
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  /* Snöeffekt */
+  .snowflake {
+    position: fixed;
+    top: -10px;
+    color: white;
+    font-size: 1em;
+    user-select: none;
+    animation-name: fall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    z-index: 1;
+  }
+
+  @keyframes fall {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(360deg); opacity: 0.3; }
+  }
+  /* 🔹 Tryckeffekt på touch */
+.day:active {
+  transform: scale(0.95);
+  background: #8a0000;
+}
+
+/* 📱 Mobilanpassning */
+@media (max-width: 600px) {
+  h1 {
+    font-size: 1.5rem;
+    margin: 20px 0;
+  }
+
+  .calendar {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .day {
+    font-size: 1.4rem;
+    border-radius: 8px;
+  }
+
+  .modal-content {
+    width: 85%;
+    font-size: 1rem;
+  }
+
+  .close {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+  }
+}
+</style>
+</head>
+<body>
+
+<h1>🎅 Isabels julkalender 🎁</h1>
+
+<div class="calendar" id="calendar"></div>
+
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h2 id="modal-title"></h2>
+    <p id="modal-text"></p>
+    <button class="close" onclick="closeModal()">Stäng</button>
+  </div>
+</div>
+
+<script>
+  // 📝 Ledtrådar — ändra fritt!
+  const clues = {
+    1: "Ledtråd: Titta under granen 🎄",
+    2: "Ledtråd: I frysen väntar något kallt ❄️",
+    3: "Ledtråd: Vid din favoritmugg ☕",
+    4: "Ledtråd: I stickkorgen 🧶",
+    5: "Ledtråd: Under kudden 😴",
+  };
+
+  // 🎄 Specialtider — dagar som kan öppnas tidigare (timme i 24-timmarsformat)
+  // Exempel: 5: 10 betyder att 5 december öppnas kl 10:00
+  const specialUnlockTimes = {
+    5: 10,   // 5 dec öppnas kl 10:00
+    10: 14,  // 10 dec öppnas kl 14:00
+    17: 12   // 17 dec öppnas kl 12:00
+  };
+
+  const calendar = document.getElementById('calendar');
+  const modal = document.getElementById('modal');
+  const modalTitle = document.getElementById('modal-title');
+  const modalText = document.getElementById('modal-text');
+
+  const totalDays = 24;
+  const now = new Date();
+  const currentDay = now.getDate();
+  const currentMonth = now.getMonth() + 1;
+  const currentTime = now.getHours() + now.getMinutes() / 60;
+
+  for (let i = 1; i <= totalDays; i++) {
+    const day = document.createElement('div');
+    day.classList.add('day');
+    day.textContent = i;
+
+    let isLocked = true;
+
+    if (currentMonth === 12) {
+      if (currentDay > i) {
+        isLocked = false; // tidigare dagar öppna
+      } else if (currentDay === i) {
+        // 👇 kolla om det finns specialtid för dagens datum
+        const unlockHour = specialUnlockTimes[i] !== undefined ? specialUnlockTimes[i] : 16;
+        if (currentTime >= unlockHour) {
+          isLocked = false;
+        }
+      }
+    }
+
+    if (isLocked) {
+      day.classList.add('locked');
+      day.addEventListener('click', () => {
+        const unlockHour = specialUnlockTimes[i] !== undefined ? specialUnlockTimes[i] : 16;
+        alert(`Den här luckan öppnas kl. ${unlockHour}:00 den ${i} december 🎅`);
+      });
+    } else {
+      day.addEventListener('click', () => openModal(i));
+    }
+
+    calendar.appendChild(day);
+  }
+
+  function openModal(day) {
+    modal.style.display = 'flex';
+    modalTitle.textContent = `Lucka ${day}`;
+    modalText.textContent = clues[day] || "Ingen ledtråd än 🎁";
+  }
+
+  function closeModal() {
+    modal.style.display = 'none';
+  }
+
+  // Snöeffekt 🎶
+  const snowflakeCount = 40;
+  for (let i = 0; i < snowflakeCount; i++) {
+    const snowflake = document.createElement('div');
+    snowflake.classList.add('snowflake');
+    snowflake.textContent = '❄';
+    snowflake.style.left = Math.random() * 100 + 'vw';
+    snowflake.style.fontSize = (Math.random() * 14 + 10) + 'px';
+    snowflake.style.animationDuration = (Math.random() * 5 + 5) + 's';
+    snowflake.style.animationDelay = Math.random() * 5 + 's';
+    document.body.appendChild(snowflake);
+  }
+</script>
