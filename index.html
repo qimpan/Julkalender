@@ -149,6 +149,57 @@
     padding: 6px 12px;
     font-size: 0.9rem;
   }
+  
+}
+/* 🎯 Final-luckan (dag 24) */
+.hint-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 10px 0 15px;
+}
+
+.hint-buttons button {
+  background: #b30000;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.hint-buttons button:hover {
+  filter: brightness(1.05);
+}
+
+.answer-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.answer-row input {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  min-width: 200px;
+}
+
+.answer-row button {
+  background: #165b33;
+  color: #fff;
+  border: none;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.feedback {
+  margin-top: 10px;
+  font-weight: 700;
 }
 </style>
 </head>
@@ -167,6 +218,69 @@
 </div>
 
 <script>
+  // 🎄 Lucka 24: 3 ledtrådar + svarsruta
+const finalChallenge = {
+  answer: "hannes",
+  hints: {
+    1: "Ledtråd 1: 32 fyllda år nu, men var 24 när han debuterade 2017 med singeln \"I went to the jungle.\",",
+    2: "Ledtråd 2: Efter att ha gjort låtar med artister som Seinabo Sey och Waterbaby har han klivit fram i rampljuset.",
+    3: "Ledtråd 3: Han sjunger över vyer av Stockholm och hans namn är Johannes minus \"Jo\"."
+  }
+};
+
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function showFinalHint(level) {
+  const hintBox = document.getElementById("final-hint-box");
+  hintBox.textContent = finalChallenge.hints[level] || "";
+}
+
+function checkFinalAnswer() {
+  const input = document.getElementById("final-answer");
+  const feedback = document.getElementById("final-feedback");
+  const success = document.getElementById("final-success");
+
+  const userAnswer = (input.value || "").trim().toLowerCase();
+
+  if (userAnswer === finalChallenge.answer) {
+    feedback.textContent = "";
+    success.style.display = "block";
+  } else {
+    success.style.display = "none";
+    feedback.textContent = "Inte riktigt… prova igen ❤️";
+  }
+}
+
+function finalModalHtml() {
+  return `
+    <div class="hint-buttons">
+      <button type="button" onclick="showFinalHint(1)">Ledtråd 1</button>
+      <button type="button" onclick="showFinalHint(2)">Ledtråd 2</button>
+      <button type="button" onclick="showFinalHint(3)">Ledtråd 3</button>
+    </div>
+
+    <p id="final-hint-box" style="min-height: 48px; margin: 0 0 10px;"></p>
+
+    <div class="answer-row">
+      <input id="final-answer" type="text" placeholder="Skriv ditt svar här…" autocomplete="off" />
+      <button type="button" onclick="checkFinalAnswer()">Svara</button>
+    </div>
+
+    <div id="final-feedback" class="feedback"></div>
+
+    <div id="final-success" style="display:none; margin-top: 14px;">
+      <h3 style="margin: 0; color: #165b33;">Grattis du har klarat hela julkalendern! 🎉</h3>
+      <p style="margin: 8px 0 0;">God Jul älskling! ❤️</p>
+    </div>
+  `;
+}
   // 📝 Ledtrådar — ändra fritt!
   const clues = {
     1: "Ledtråd: Ditt paket ligger där den vilandes ände möter symfoniernas stapel",
@@ -199,6 +313,7 @@
     13: 7,
     14: 11,
     17: 14,   // 17 dec öppnas kl 12:00
+    24: 10,
   };
 
   const calendar = document.getElementById('calendar');
@@ -245,11 +360,30 @@
   }
 
   function openModal(day) {
-    modal.style.display = 'flex';
-    modalTitle.textContent = `Lucka ${day}`;
-    modalText.textContent = clues[day] || "Ingen ledtråd än 🎁";
+  modal.style.display = 'flex';
+  modalTitle.textContent = `Lucka ${day}`;
+
+  // Lucka 24: specialläge med 3 ledtrådar + svar
+  if (day === 24) {
+    modalText.innerHTML = finalModalHtml();
+
+    // Enter = "Svara"
+    setTimeout(() => {
+      const input = document.getElementById("final-answer");
+      if (input) {
+        input.focus();
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") checkFinalAnswer();
+        });
+      }
+    }, 0);
+
+    return;
   }
 
+  // Vanliga luckor
+  modalText.textContent = clues[day] || "Ingen ledtråd än 🎁";
+}
   function closeModal() {
     modal.style.display = 'none';
   }
